@@ -75,6 +75,7 @@ export default {
       try {
         const { data } = await login(this.mobile, this.code)
         // console.log(data, a.a)
+        console.log(data.data)
         this.SET_TOKEN(data.data)
         this.$router.push('/profile')
         this.$toast.success('登录成功')
@@ -86,6 +87,7 @@ export default {
         // axios封装的error对象
         // -error.response.data 后端返回的数据
         // -error.response.status 后端返回的状态码
+
         if (error.response && error.response.status === 400) {
           this.$toast.fail(error.response.data.message)
         } else {
