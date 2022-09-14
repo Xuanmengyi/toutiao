@@ -15,34 +15,66 @@
       >
         <articale-list :id="item.id"></articale-list>
       </van-tab>
-      <span class="toutiao toutiao-gengduo"></span>
+      <span class="toutiao toutiao-gengduo" @click="isShow = true"></span>
     </van-tabs>
+    <van-popup
+      v-model="isShow"
+      closeable
+      close-icon-position="top-left"
+      position="bottom"
+      :style="{ height: '100%' }"
+    >
+      <channel-edit
+        v-if="isShow"
+        :my-channels="channels"
+        @change-active=";[((isShow = false), (active = $event))]"
+        @del-channel="delChannel"
+        @add-channel="addChannel"
+      ></channel-edit>
+    </van-popup>
   </div>
 </template>
 
 <script>
-import { getChannelAPI } from '@/api'
+import { getUserChannelAPI, delChannelAPI, addChannelAPI } from '@/api'
 import ArticaleList from './component/ArticaleList.vue'
+import ChannelEdit from './component/ChannelEdit.vue'
+import { mapGetters, mapMutations } from 'vuex'
 export default {
   name: 'Home',
   data() {
     return {
       active: 0,
-      channels: []
+      channels: [],
+      isShow: false
     }
   },
   components: {
-    ArticaleList
+    ArticaleList,
+    ChannelEdit
   },
   created() {
-    this.getChannel()
+    this.initChannels()
   },
   // 1.？？ ==>相当于 ||,常用于语句
   // 2. ？. ==>可选链操作符，?前面是undefined，那么不会往后取值
   methods: {
+    ...mapMutations(['SET_MY_CHANNEL']),
+    initChannels() {
+      if (this.isLogin) {
+        this.getChannel()
+      } else {
+        const myChannels = this.$store.state.myChannels
+        if (myChannels.length === 0) {
+          this.getChannel()
+        } else {
+          this.channels = myChannels
+        }
+      }
+    },
     async getChannel() {
       try {
-        const { data } = await getChannelAPI()
+        const { data } = await getUserChannelAPI()
         this.channels = data.data.channels
       } catch (error) {
         if (!error.response) {
@@ -52,7 +84,48 @@ export default {
           status === 507 && this.$toast.fail('请刷新')
         }
       }
+    },
+    async delChannel(id) {
+      const newChannels = this.channels.filter((item) => item.id !== id)
+      try {
+        if (this.isLogin) {
+          await delChannelAPI(id)
+        } else {
+          // 存储到本地
+          this.SET_MY_CHANNEL(newChannels)
+        }
+        this.channels = newChannels
+        this.$toast.success('删除频道成功')
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          this.$toast.fail('请先登录再删除')
+        } else {
+          throw error
+        }
+      }
+    },
+    async addChannel(channel) {
+      try {
+        if (this.isLogin) {
+          await addChannelAPI(channel.id, this.channels.length)
+        } else {
+          // 存储到本地
+          this.SET_MY_CHANNEL([...this.channels, channel])
+        }
+
+        this.channels.push(channel)
+        this.$toast.success('添加频道成功')
+      } catch (error) {
+        if (error.response && error.response.status === 401) {
+          this.$toast.fail('请先登录后添加')
+        } else {
+          throw error
+        }
+      }
     }
+  },
+  computed: {
+    ...mapGetters(['isLogin'])
   }
 }
 </script>

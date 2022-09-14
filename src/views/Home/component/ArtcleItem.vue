@@ -5,7 +5,6 @@
       v-if="article.cover.type === 0"
       :title="article.title"
       :label="label"
-      value="内容"
     />
     <!-- 一张图片 -->
     <van-cell
@@ -35,6 +34,7 @@
 </template>
 
 <script>
+import dayjs from '@/utils/dayjs'
 export default {
   props: {
     article: {
@@ -44,9 +44,8 @@ export default {
   },
   computed: {
     label() {
-      // eslint-disable
       const { aut_name, comm_count, pubdate } = this.article
-      return `${aut_name} ${comm_count}评论 ${pubdate}`
+      return `${aut_name} ${comm_count}评论 ${dayjs(pubdate).fromNow()}`
     }
   }
 }
